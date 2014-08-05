@@ -1,9 +1,34 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 "use strict";
 
-module.exports = JSONP;
+module.exports = append;
 
-function JSONP(file, head, fn) {
+function append(array, item) {
+  if (array.indexOf(item) == -1) {
+    array.push(item);
+  }
+  return array;
+}
+
+},{}],2:[function(require,module,exports){
+"use strict";
+
+module.exports = fold;
+
+function fold(array, init, fn, ctx) {
+  for (var i = 0; i < array.length; i++) {
+    init = fn.call(ctx, array[i], i, init);
+  }
+  return init;
+}
+
+
+},{}],3:[function(require,module,exports){
+"use strict";
+
+module.exports = loadScript;
+
+function loadScript(file, head, fn) {
   if (typeof head == 'function') {
     fn = head;
     head = document.getElementsByTagName('head')[0];
@@ -35,39 +60,56 @@ function JSONP(file, head, fn) {
 
 }
 
-},{}],2:[function(require,module,exports){
-"use strict";
-
-module.exports = append;
-
-function append(array, item) {
-  if (array.indexOf(item) == -1) {
-    array.push(item);
-  }
-  return array;
-}
-
-},{}],3:[function(require,module,exports){
-"use strict";
-
-module.exports = fold;
-
-function fold(array, init, fn, ctx) {
-  for (var i = 0; i < array.length; i++) {
-    init = fn.call(ctx, array[i], i, init);
-  }
-  return init;
-}
-
-
 },{}],4:[function(require,module,exports){
+"use strict";
+
+var fold = require('./fold');
+
+module.exports = parallel;
+
+function parallel(array, fn) {
+
+  var length = array.length;
+  var results = new Array(length);
+  var loaded = 0;
+
+  function wrap(fn, index) {
+    setTimeout(function() {
+      fn(function callback(err) {
+        results[index] = arguments;
+        loaded++;
+        ready();
+      });
+    }, 0);
+  }
+
+  function ready() {
+    if (loaded >= length) {
+      fn.apply(null, results);
+    }
+  }
+
+  ready();
+
+  fold(array, 0, wrap);
+
+}
+
+parallel.errors = function errors(args) {
+  return fold(args, [], function(val, key, errors) {
+    if (val[0]) errors.push(val[0]);
+    return errors;
+  });
+};
+
+},{"./fold":2}],5:[function(require,module,exports){
 (function (global){
 "use strict";
 
-var parallel = require('./parallel');
-var JSONP    = require('./JSONP');
-var fold     = require('./fold');
-var append   = require('./append');
+var parallel   = require('../lib/parallel');
+var loadScript = require('../lib/loadScript');
+var fold       = require('../lib/fold');
+var append     = require('../lib/append');
 
 var cache = {};
 var modules = {};
@@ -122,7 +164,7 @@ var loadjs = global.loadjs = function(deps, fn) {
   // map to tasks that load the external file
   var loadTasks = fold(filesToLoad, [], function(file, key, tasks) {
     tasks.push(function(cb) {
-      JSONP(file, cb);
+      loadScript(loadjs.path + file, cb);
     });
     return tasks;
   });
@@ -140,50 +182,9 @@ var loadjs = global.loadjs = function(deps, fn) {
 
 };
 
+loadjs.path = '';
 loadjs.files = [];
 loadjs.map = {};
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./JSONP":1,"./append":2,"./fold":3,"./parallel":5}],5:[function(require,module,exports){
-"use strict";
-
-var fold = require('./fold');
-
-module.exports = parallel;
-
-function parallel(array, fn) {
-
-  var length = array.length;
-  var results = new Array(length);
-  var loaded = 0;
-
-  function wrap(fn, index) {
-    setTimeout(function() {
-      fn(function callback(err) {
-        results[index] = arguments;
-        loaded++;
-        ready();
-      });
-    }, 0);
-  }
-
-  function ready() {
-    if (loaded >= length) {
-      fn.apply(null, results);
-    }
-  }
-
-  ready();
-
-  fold(array, 0, wrap);
-
-}
-
-parallel.errors = function errors(args) {
-  return fold(args, [], function(val, key, errors) {
-    if (val[0]) errors.push(val[0]);
-    return errors;
-  });
-};
-
-},{"./fold":3}]},{},[4]);
+},{"../lib/append":1,"../lib/fold":2,"../lib/loadScript":3,"../lib/parallel":4}]},{},[5]);

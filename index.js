@@ -3,11 +3,11 @@
 var through = require('through2');
 var sort = require('deps-sort');
 var combineSourceMap = require('combine-source-map');
+var mkdirp = require('mkdirp');
 var path = require('path');
 var fs = require('fs');
-var fold = require('./fold');
-var forOwn = require('./forOwn');
-
+var fold = require('./lib/fold');
+var forOwn = require('./lib/forOwn');
 
 var defaultPreludePath = path.join(__dirname, 'preludes', 'prelude.js');
 var defaultPrelude = fs.readFileSync(defaultPreludePath);
@@ -16,28 +16,27 @@ module.exports = partition;
 
 function partition(b, opts) {
 
-  if (!opts) opts = {};
+  opts = normalizeOptions(b, opts);
 
-  var mapFile = opts.map;
-  var map = JSON.parse(fs.readFileSync((mapFile)));
-
-  var cwd = b._basedir || process.cwd();
+  var map = JSON.parse(fs.readFileSync(opts.map));
+  var cwd = opts.cwd;
 
   var modulesByFile = {};
   var moduleBelongsTo = {};
+  var shortIDLables = {};
 
   // output files
   var files = Object.keys(map);
   // streams for the output files
   var streams = {};
 
-  // first file, with preamble
+  // first file, with prelude
   var firstFile = path.resolve(cwd, "main.js");
 
   files.forEach(function(file) {
     // resolve filename and require modules
     map[file].forEach(function(mod, i) {
-      map[file][i] = path.resolve(cwd, mod);
+      mod = map[file][i] = path.resolve(cwd, mod);
       b.require(mod);
     });
 
@@ -46,14 +45,18 @@ function partition(b, opts) {
   function createStream(file) {
     // create output stream for this file
     var stream = through.obj();
-    var ws = fs.createWriteStream(file);
+    var outFile = path.resolve(opts.output, file);
+    mkdirp.sync(path.dirname(outFile));
+
+    var ws = fs.createWriteStream(outFile);
 
     stream
       .pipe(sort())
       .pipe(wrap({
-        preamble: file == firstFile,
+        prelude: file == firstFile,
         files: files,
-        map: modulesByFile
+        map: modulesByFile,
+        path: opts.path
       }))
       .pipe(ws);
 
@@ -73,13 +76,12 @@ function partition(b, opts) {
   var deps = b.pipeline.get('deps');
 
   // initialize objects
-  deps.push(through.obj(function(row, enc, next) {
+  deps.on('data', function(row) {
     row.fullPath = path.resolve(cwd, row.file);
     modulesByFile[row.fullPath] = row;
     moduleBelongsTo[row.fullPath] = {};
-    this.push(row);
-    next();
-  }));
+    shortIDLables[row.id] = relativeID(cwd + '/a', row.id);
+  });
 
   deps.on('end', function() {
     var first = 0;
@@ -105,7 +107,7 @@ function partition(b, opts) {
     forOwn(moduleBelongsTo, function(files, full) {
       // determine which file claims the module the most. If it's a dangling
       // file, it's automatically added to the 'main.js'
-      var file = 'main.js';
+      var file = firstFile;
       var count = 0;
       for (var f in files) if (f == firstFile || files[f] > count){
         file = f;
@@ -119,6 +121,27 @@ function partition(b, opts) {
     });
 
   });
+
+  // replace labels by shorter IDs, if they are not replaced by numbers
+
+  var label = b.pipeline.get('label');
+
+  label.push(through.obj(function(row, enc, next) {
+    if (shortIDLables[row.id]) {
+      row.id = shortIDLables[row.id];
+
+      forOwn(row.deps, function(dep, key) {
+        if (shortIDLables[dep]) {
+          row.deps[key] = shortIDLables[dep];
+        }
+      });
+    }
+
+    this.push(row);
+    next();
+  }));
+
+  // write modules to the multiple output streams
 
   var pack = b.pipeline.get('pack');
 
@@ -134,6 +157,27 @@ function partition(b, opts) {
     });
   });
 
+}
+
+function normalizeOptions(b, opts) {
+  if (!opts) opts = {};
+  if (!opts.path) opts.path = '';
+  if (opts.path && opts.path.slice(-1) != '/') {
+    opts.path += '/';
+  }
+  opts.cwd = b._basedir || path.dirname(opts.map) || process.cwd();
+  opts.output = opts.output || opts.o || opts.cwd;
+  return opts;
+}
+
+function relativeID(from, to){
+  var file = path.relative(path.dirname(from), to);
+  if (file[0] != '.') file = './' + file;
+  return (path.extname(file) == '.js') ? file.slice(0, -3) : file;
+}
+
+function ensureJSFileName(filename) {
+  return filename + ((path.extname(filename) === '') ? '.js' : '');
 }
 
 function createFileMap(modules, files) {
@@ -171,14 +215,14 @@ function wrap(opts) {
   var first = true;
 
   var sourcemap;
-  var lineno = opts.preamble ? newlinesIn(defaultPrelude) : 0;
+  var lineno = (opts.prelude ? newlinesIn(defaultPrelude) : 0) + 1;
 
   var stream = through.obj(write, end);
   return stream;
 
   function write(row, enc, next) {
 
-    if (first && opts.preamble) {
+    if (first && opts.prelude) {
       stream.push(defaultPrelude);
     }
 
@@ -187,17 +231,17 @@ function wrap(opts) {
         sourcemap = combineSourceMap.create();
       }
 
-      if (first && opts.preamble) {
+      if (first && opts.prelude) {
         sourcemap.addFile(
           {sourceFile: defaultPreludePath, source: defaultPrelude.toString()},
           {line: 0}
         );
       }
 
-      sourcemap.addFile({
-        sourceFile: row.sourceFile, source: row.source,
-        line: lineno
-      });
+      sourcemap.addFile(
+        {sourceFile: ensureJSFileName(row.sourceFile), source: row.source},
+        {line: lineno}
+      );
     }
 
     var deps = Object.keys(row.deps || {}).sort().map(function (key) {
@@ -218,7 +262,9 @@ function wrap(opts) {
     stream.push(wrappedSource);
     lineno += newlinesIn(wrappedSource);
 
-    if (first && opts.preamble) {
+    if (first && opts.prelude) {
+
+      stream.push(new Buffer('\nloadjs.path = "' + opts.path + '";'));
 
       stream.push(new Buffer('\nloadjs.files = [' + opts.files.map(function(file) {
         return '"' + file + '"';

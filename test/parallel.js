@@ -1,7 +1,7 @@
 "use strict";
 
 var expect = require('expect.js');
-var parallel = require('../parallel');
+var parallel = require('../lib/parallel');
 
 function toArray(args) {
   return Array.prototype.slice.call(args);

@@ -1,9 +1,9 @@
 "use strict";
 
-var parallel = require('./parallel');
-var JSONP    = require('./JSONP');
-var fold     = require('./fold');
-var append   = require('./append');
+var parallel   = require('../lib/parallel');
+var loadScript = require('../lib/loadScript');
+var fold       = require('../lib/fold');
+var append     = require('../lib/append');
 
 var cache = {};
 var modules = {};
@@ -58,7 +58,7 @@ var loadjs = global.loadjs = function(deps, fn) {
   // map to tasks that load the external file
   var loadTasks = fold(filesToLoad, [], function(file, key, tasks) {
     tasks.push(function(cb) {
-      JSONP(file, cb);
+      loadScript(loadjs.path + file, cb);
     });
     return tasks;
   });
@@ -76,5 +76,6 @@ var loadjs = global.loadjs = function(deps, fn) {
 
 };
 
+loadjs.path = '';
 loadjs.files = [];
 loadjs.map = {};
