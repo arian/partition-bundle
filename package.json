@@ -1,0 +1,31 @@
+{
+  "name": "jsloader",
+  "version": "0.0.0",
+  "description": "A JS loader for async loading JS modules",
+  "main": "entry.js",
+  "directories": {
+    "test": "test"
+  },
+  "dependencies": {
+    "combine-source-map": "^0.3.0",
+    "deps-sort": "^1.3.4",
+    "through2": "^0.5.1"
+  },
+  "devDependencies": {
+    "expect.js": "^0.3.1",
+    "mocha": "^1.21.3"
+  },
+  "scripts": {
+    "test": "mocha test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/arian/jsloader.git"
+  },
+  "author": "Arian Stolwijk",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/arian/jsloader/issues"
+  },
+  "homepage": "https://github.com/arian/jsloader"
+}
