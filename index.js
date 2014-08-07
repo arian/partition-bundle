@@ -212,6 +212,18 @@ function newlinesIn(buf) {
   });
 }
 
+function wrapModule(row, deps) {
+  return new Buffer([
+    '__define("',
+    row.id,
+    '",function(require,module,exports){\n',
+    combineSourceMap.removeComments(row.source),
+    '\n},{',
+    deps,
+    '});\n'
+  ].join(''));
+}
+
 // from object bundle into wrapped JS buffer, wrapping the source into
 // __define() calls and adding the prelude for the entry file
 function wrap(opts) {
@@ -253,16 +265,7 @@ function wrap(opts) {
       return JSON.stringify(key) + ':' + JSON.stringify(row.deps[key]);
     }).join(',');
 
-    var wrappedSource = new Buffer([
-      '__define("',
-      row.id,
-      '",function(require,module,exports){\n',
-      combineSourceMap.removeComments(row.source),
-      '\n},{',
-      deps,
-      '});\n'
-    ].join(''));
-
+    var wrappedSource = wrapModule(row, deps);
 
     stream.push(wrappedSource);
     lineno += newlinesIn(wrappedSource);
