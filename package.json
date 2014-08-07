@@ -1,5 +1,5 @@
 {
-  "name": "partion-bundle",
+  "name": "partition-bundle",
   "version": "1.0.0",
   "description": "A JS loader for async loading JS modules",
   "main": "index.js",
@@ -22,12 +22,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/arian/jsloader.git"
+    "url": "https://github.com/arian/partition-bundle.git"
   },
   "author": "Arian Stolwijk",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/arian/jsloader/issues"
+    "url": "https://github.com/arian/partition-bundle/issues"
   },
-  "homepage": "https://github.com/arian/jsloader"
+  "homepage": "https://github.com/arian/partition-bundle"
 }
