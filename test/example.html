@@ -5,6 +5,8 @@
   <script src="fixtures/out/entry.js"></script>
   <script>
 
+    // browserify -p [ ./index.js --map test/fixtures/map.json --url fixtures/out -o test/fixtures/out ]
+
     loadjs(['./a', './e'], function(deps) {
       console.log(deps);
     });

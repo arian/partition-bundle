@@ -39,7 +39,6 @@ function partition(b, opts) {
       mod = map[file][i] = path.resolve(cwd, mod);
       b.require(mod);
     });
-
   });
 
   function createStream(file) {
@@ -86,8 +85,8 @@ function partition(b, opts) {
   }
 
   deps.on('end', function() {
-    var first = 0;
 
+    var first = 0;
     forOwn(map, function(_deps, file) {
       if (first++ === 0) firstFile = file;
       // top level dependencies
@@ -214,7 +213,7 @@ function newlinesIn(buf) {
 
 function wrapModule(row, deps) {
   return new Buffer([
-    '__define("',
+    'loadjs.d("',
     row.id,
     '",function(require,module,exports){\n',
     combineSourceMap.removeComments(row.source),

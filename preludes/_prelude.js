@@ -8,7 +8,6 @@ var append     = require('../lib/append');
 var cache = {};
 var modules = {};
 
-global.__define = __define;
 function __define(id, def, deps) {
   modules[id] = {def: def, deps: deps};
 }
@@ -75,6 +74,9 @@ var loadjs = global.loadjs = function(deps, fn) {
   });
 
 };
+
+
+loadjs.d = __define;
 
 loadjs.url = '';
 loadjs.files = [];
