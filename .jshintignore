@@ -1,2 +1,4 @@
 node_modules
 dist
+test/fixtures/out/
+preludes/prelude.js
