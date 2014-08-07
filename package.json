@@ -1,6 +1,6 @@
 {
   "name": "partion-bundle",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "description": "A JS loader for async loading JS modules",
   "main": "index.js",
   "directories": {
