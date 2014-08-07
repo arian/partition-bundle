@@ -58,7 +58,7 @@ var loadjs = global.loadjs = function(deps, fn) {
   // map to tasks that load the external file
   var loadTasks = fold(filesToLoad, [], function(file, key, tasks) {
     tasks.push(function(cb) {
-      loadScript(loadjs.path + file, cb);
+      loadScript(loadjs.url + file, cb);
     });
     return tasks;
   });
@@ -76,6 +76,6 @@ var loadjs = global.loadjs = function(deps, fn) {
 
 };
 
-loadjs.path = '';
+loadjs.url = '';
 loadjs.files = [];
 loadjs.map = {};

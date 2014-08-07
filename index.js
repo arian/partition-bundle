@@ -56,7 +56,7 @@ function partition(b, opts) {
         prelude: file == firstFile,
         files: files,
         map: modulesByFile,
-        path: opts.path
+        url: opts.url
       }))
       .pipe(ws);
 
@@ -141,9 +141,9 @@ function partition(b, opts) {
 
 function normalizeOptions(b, opts) {
   if (!opts) opts = {};
-  if (!opts.path) opts.path = '';
-  if (opts.path && opts.path.slice(-1) != '/') {
-    opts.path += '/';
+  if (!opts.url) opts.url = '';
+  if (opts.url && opts.url.slice(-1) != '/') {
+    opts.url += '/';
   }
   opts.cwd = b._basedir || path.dirname(opts.map) || process.cwd();
   opts.output = opts.output || opts.o || opts.cwd;
@@ -272,7 +272,7 @@ function wrap(opts) {
 
     if (first && opts.prelude) {
 
-      stream.push(new Buffer('\nloadjs.path = "' + opts.path + '";'));
+      stream.push(new Buffer('\nloadjs.url = "' + opts.url + '";'));
 
       stream.push(new Buffer('\nloadjs.files = [' + opts.files.map(function(file) {
         return '"' + file + '"';
