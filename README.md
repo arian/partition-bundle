@@ -60,3 +60,13 @@ Once the listener is executed, the **common/extra.js** file is loaded and the
 **Note:** once a module is loaded, the file won't be loaded again, but the
 result will be cached and returned by other `loadjs` or `require` calls, as
 you are used to with normal modules.
+
+Difference with [factor-bundle](https://www.npmjs.org/package/factor-bundle)
+----------------------------------------------------------------------------
+
+factor-bundle is much like this plugin, except that it does not add a loader.
+It can factor-out common modules in to different output files, but then you
+need to manually load the files with `<script>` tags. **partition-budle** can
+load the excluded modules later using the `loadjs` function and by simply using
+the module ID, rather than the final JS filename.
+
