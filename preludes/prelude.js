@@ -15,11 +15,11 @@ function append(array, item) {
 
 module.exports = fold;
 
-function fold(array, init, fn, ctx) {
+function fold(array, acc, fn, ctx) {
   for (var i = 0; i < array.length; i++) {
-    init = fn.call(ctx, array[i], i, init);
+    acc = fn.call(ctx, array[i], i, acc);
   }
-  return init;
+  return acc;
 }
 
 
@@ -150,8 +150,8 @@ var loaded = [];
 var loadjs = global.loadjs = function(deps, fn) {
 
   // find modules that are not loaded yet
-  var modulesToLoad = fold(deps, [], function(module, key, prev) {
-    return (modules[module]) ? prev : append(prev, module);
+  var modulesToLoad = fold(deps, [], function(module, key, acc) {
+    return (modules[module]) ? acc : append(acc, module);
   });
 
   // and if we need to load external files

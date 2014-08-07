@@ -44,8 +44,8 @@ var loaded = [];
 var loadjs = global.loadjs = function(deps, fn) {
 
   // find modules that are not loaded yet
-  var modulesToLoad = fold(deps, [], function(module, key, prev) {
-    return (modules[module]) ? prev : append(prev, module);
+  var modulesToLoad = fold(deps, [], function(module, key, acc) {
+    return (modules[module]) ? acc : append(acc, module);
   });
 
   // and if we need to load external files
