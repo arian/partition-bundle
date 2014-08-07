@@ -23,7 +23,7 @@ function partition(b, opts) {
 
   var modulesByFile = {};
   var moduleBelongsTo = {};
-  var shortIDLables = {};
+  var shortIDLabels = {};
 
   // output files
   var files = Object.keys(map);
@@ -63,16 +63,6 @@ function partition(b, opts) {
     return (streams[file] = stream);
   }
 
-  function search(deps, file) {
-    forOwn(deps, function(dep) {
-      dep = modulesByFile[path.resolve(cwd, dep)];
-      var belong = moduleBelongsTo[dep.fullPath];
-      var count = belong[file] = (belong[file] || 0) + 1;
-      // stop at 3, otherwise it might be a cyclic dependency
-      if (count <= 3) search(dep.deps, file);
-    });
-  }
-
   var deps = b.pipeline.get('deps');
 
   // initialize objects
@@ -80,25 +70,28 @@ function partition(b, opts) {
     row.fullPath = path.resolve(cwd, row.file);
     modulesByFile[row.fullPath] = row;
     moduleBelongsTo[row.fullPath] = {};
-    shortIDLables[row.id] = relativeID(cwd + '/a', row.id);
+    shortIDLabels[row.id] = relativeID(cwd + '/a', row.id);
   });
+
+  // search through the dependencies recursively, and associate each dependency
+  // to a target file
+  function depsBelongTo(deps, file) {
+    forOwn(deps, function(dep) {
+      dep = modulesByFile[path.resolve(cwd, dep)];
+      var belong = moduleBelongsTo[dep.fullPath];
+      var count = belong[file] = (belong[file] || 0) + 1;
+      // stop at 3, otherwise it might be a cyclic dependency
+      if (count <= 3) depsBelongTo(dep.deps, file);
+    });
+  }
 
   deps.on('end', function() {
     var first = 0;
 
     forOwn(map, function(_deps, file) {
-
       if (first++ === 0) firstFile = file;
-
       // top level dependencies
-      var deps = {};
-      _deps.forEach(function(dep) {
-        deps[dep] = dep;
-      });
-
-      // resolve the dependency map
-      search(deps, file);
-
+      depsBelongTo(arrayToObject(_deps), file);
       createStream(file);
     });
 
@@ -117,6 +110,7 @@ function partition(b, opts) {
         // This solves immediate loading of a second file in the browser
         if (f == firstFile) break;
       }
+      // assign the destination file
       modulesByFile[full].destFile = file;
     });
 
@@ -125,24 +119,9 @@ function partition(b, opts) {
   // replace labels by shorter IDs, if they are not replaced by numbers
 
   var label = b.pipeline.get('label');
-
-  label.push(through.obj(function(row, enc, next) {
-    if (shortIDLables[row.id]) {
-      row.id = shortIDLables[row.id];
-
-      forOwn(row.deps, function(dep, key) {
-        if (shortIDLables[dep]) {
-          row.deps[key] = shortIDLables[dep];
-        }
-      });
-    }
-
-    this.push(row);
-    next();
-  }));
+  label.push(renameIDLabels(shortIDLabels));
 
   // write modules to the multiple output streams
-
   var pack = b.pipeline.get('pack');
 
   // write modules to the new dest file
@@ -151,6 +130,7 @@ function partition(b, opts) {
     next();
   }));
 
+  // close each stream
   pack.on('end', function() {
     forOwn(streams, function(stream) {
       stream.push(null);
@@ -180,6 +160,14 @@ function ensureJSFileName(filename) {
   return filename + ((path.extname(filename) === '') ? '.js' : '');
 }
 
+function arrayToObject(array) {
+  var obj = {};
+  array.forEach(function(item) {
+    obj[item] = item;
+  });
+  return obj;
+}
+
 function createFileMap(modules, files) {
   var map = {};
   var modsByID = {};
@@ -203,21 +191,38 @@ function createFileMap(modules, files) {
   return map;
 }
 
+function renameIDLabels(map) {
+  return through.obj(function(row, enc, next) {
+    if (map[row.id]) {
+      row.id = map[row.id];
+      forOwn(row.deps, function(dep, key) {
+        if (map[dep]) {
+          row.deps[key] = map[dep];
+        }
+      });
+    }
+    this.push(row);
+    next();
+  });
+}
+
 function newlinesIn(buf) {
   return fold(buf, 0, function(char, i, count) {
     return count + (char == 10 ? 1 : 0);
   });
 }
 
+// from object bundle into wrapped JS buffer, wrapping the source into
+// __define() calls and adding the prelude for the entry file
 function wrap(opts) {
   if (!opts) opts = {};
 
   var first = true;
-
-  var sourcemap;
   var lineno = (opts.prelude ? newlinesIn(defaultPrelude) : 0) + 1;
+  var sourcemap;
 
   var stream = through.obj(write, end);
+
   return stream;
 
   function write(row, enc, next) {
