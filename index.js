@@ -37,7 +37,7 @@ function partition(b, opts) {
     // resolve filename and require modules
     map[file].forEach(function(mod, i) {
       mod = map[file][i] = path.resolve(cwd, mod);
-      b.require(mod);
+      b.require(mod, {expose: true, entry: true});
     });
   });
 
