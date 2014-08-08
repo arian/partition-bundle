@@ -1,7 +1,7 @@
 {
   "name": "partition-bundle",
   "version": "1.0.2",
-  "description": "A JS loader for async loading JS modules",
+  "description": "A Browserify plugin to pack multiple related modules together and load modules on-demand",
   "main": "index.js",
   "directories": {
     "test": "test"
