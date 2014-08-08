@@ -26,6 +26,13 @@
     "type": "git",
     "url": "https://github.com/arian/partition-bundle.git"
   },
+  "keywords": [
+    "browserify-plugin",
+    "JS Loader",
+    "browser",
+    "factor-bundle",
+    "browserify"
+  ],
   "author": "Arian Stolwijk",
   "license": "ISC",
   "bugs": {
