@@ -14,6 +14,7 @@ describe('loadScript', function() {
   });
 
   it('should return an error when the file was not loaded', function(done) {
+    this.timeout(15000);
     loadScript('./fixtures/notExisting.js', function(err) {
       expect(err).to.be.ok();
       done();

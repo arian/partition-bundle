@@ -1,16 +1,18 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 "use strict";
 
+var indexOf = require('./indexOf');
+
 module.exports = append;
 
 function append(array, item) {
-  if (array.indexOf(item) == -1) {
+  if (indexOf(array, item) == -1) {
     array.push(item);
   }
   return array;
 }
 
-},{}],2:[function(require,module,exports){
+},{"./indexOf":3}],2:[function(require,module,exports){
 "use strict";
 
 module.exports = fold;
@@ -26,6 +28,18 @@ function fold(array, acc, fn, ctx) {
 },{}],3:[function(require,module,exports){
 "use strict";
 
+module.exports = indexOf;
+
+function indexOf(array, item) {
+  for (var i = 0; i < array.length; i++) {
+    if (array[i] === item) return i;
+  }
+  return -1;
+}
+
+},{}],4:[function(require,module,exports){
+"use strict";
+
 module.exports = loadScript;
 
 function loadScript(file, head, fn) {
@@ -36,15 +50,17 @@ function loadScript(file, head, fn) {
 
   var script = document.createElement('script');
   var done = false;
+  var timer;
 
   function ready(err) {
-      done = true;
-      script.onload = script.onerror = script.onreadystatechange = null;
-      fn(err);
+    done = true;
+    script.onload = script.onerror = script.onreadystatechange = null;
+    clearTimeout(timer);
+    fn(err);
   }
 
-  script.onload = script.onreadystatechange = function() {
-    if (!done && (!this.readyState || this.readyState == 'loaded')) {
+  script.onload = script.onreadystatechange = function(e) {
+    if (!done && (!this.readyState || this.readyState == 'complete' || this.readyState == 'loaded')) {
       ready(null);
     }
   };
@@ -55,12 +71,16 @@ function loadScript(file, head, fn) {
     }
   };
 
+  timer = setTimeout(function() {
+    ready(new Error('Script loading timed-out'));
+  }, 1e4);
+
   script.src = file;
   head.appendChild(script);
 
 }
 
-},{}],4:[function(require,module,exports){
+},{}],5:[function(require,module,exports){
 "use strict";
 
 var fold = require('./fold');
@@ -102,7 +122,7 @@ parallel.errors = function errors(args) {
   });
 };
 
-},{"./fold":2}],5:[function(require,module,exports){
+},{"./fold":2}],6:[function(require,module,exports){
 (function (global){
 "use strict";
 
@@ -189,4 +209,4 @@ loadjs.files = [];
 loadjs.map = {};
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../lib/append":1,"../lib/fold":2,"../lib/loadScript":3,"../lib/parallel":4}]},{},[5]);
+},{"../lib/append":1,"../lib/fold":2,"../lib/loadScript":4,"../lib/parallel":5}]},{},[6]);
