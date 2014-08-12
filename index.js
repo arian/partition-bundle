@@ -8,6 +8,7 @@ var path = require('path');
 var fs = require('fs');
 var fold = require('./lib/fold');
 var forOwn = require('./lib/forOwn');
+var append = require('./lib/append');
 
 var defaultPreludePath = path.join(__dirname, 'preludes', 'prelude.js');
 var defaultPrelude = fs.readFileSync(defaultPreludePath);
@@ -18,12 +19,13 @@ function partition(b, opts) {
 
   opts = normalizeOptions(b, opts);
 
-  var map = JSON.parse(fs.readFileSync(opts.map));
+  var map = opts.map;
   var cwd = opts.cwd;
 
-  var modulesByFile = {};
+  var modulesByID = {};
   var moduleBelongsTo = {};
   var shortIDLabels = {};
+  var labelCount = 1;
 
   // output files
   var files = Object.keys(map);
@@ -33,10 +35,10 @@ function partition(b, opts) {
   // first file, with prelude
   var firstFile = path.resolve(cwd, "main.js");
 
+  // require the modules from the map
   files.forEach(function(file) {
-    // resolve filename and require modules
     map[file].forEach(function(mod, i) {
-      mod = map[file][i] = path.resolve(cwd, mod);
+      map[file][i] = mod = ensureJSFileName(path.resolve(cwd, mod));
       b.require(mod, {expose: mod, entry: true});
     });
   });
@@ -54,30 +56,40 @@ function partition(b, opts) {
       .pipe(wrap({
         prelude: file == firstFile,
         files: files,
-        map: modulesByFile,
+        map: modulesByID,
         url: opts.url
       }))
       .pipe(ws);
 
-    return (streams[file] = stream);
+    // kinda hacky, to notify the stream has finished, unfortunately
+    // doesn't seem to happen automatically
+    ws.on('finish', function() {
+      stream.emit('finish');
+    });
+
+    streams[file] = stream;
+    return stream;
   }
 
   var deps = b.pipeline.get('deps');
 
   // initialize objects
   deps.on('data', function(row) {
-    row.fullPath = path.resolve(cwd, row.file);
-    modulesByFile[row.fullPath] = row;
-    moduleBelongsTo[row.fullPath] = {};
-    shortIDLabels[row.id] = relativeID(cwd + '/a', row.id);
+    modulesByID[row.id] = row;
+    moduleBelongsTo[row.id] = {};
+    if (row.expose || row.entry) {
+      shortIDLabels[row.id] = relativeID(cwd + '/a', path.resolve(cwd, row.file));
+    } else {
+      shortIDLabels[row.id] = labelCount++;
+    }
   });
 
   // search through the dependencies recursively, and associate each dependency
   // to a target file
   function depsBelongTo(deps, file) {
     forOwn(deps, function(dep) {
-      dep = modulesByFile[path.resolve(cwd, dep)];
-      var belong = moduleBelongsTo[dep.fullPath];
+      dep = modulesByID[dep];
+      var belong = moduleBelongsTo[dep.id];
       var count = belong[file] = (belong[file] || 0) + 1;
       // stop at 3, otherwise it might be a cyclic dependency
       if (count <= 3) depsBelongTo(dep.deps, file);
@@ -85,7 +97,6 @@ function partition(b, opts) {
   }
 
   deps.on('end', function() {
-
     var first = 0;
     forOwn(map, function(_deps, file) {
       if (first++ === 0) firstFile = file;
@@ -96,7 +107,7 @@ function partition(b, opts) {
 
     if (!streams[firstFile]) createStream(firstFile);
 
-    forOwn(moduleBelongsTo, function(files, full) {
+    forOwn(moduleBelongsTo, function(files, id) {
       // determine which file claims the module the most. If it's a dangling
       // file, it's automatically added to the 'main.js'
       var file = firstFile;
@@ -110,31 +121,17 @@ function partition(b, opts) {
         if (f == firstFile) break;
       }
       // assign the destination file
-      modulesByFile[full].destFile = file;
+      modulesByID[id].destFile = file;
     });
-
   });
 
   // replace labels by shorter IDs, if they are not replaced by numbers
-
   var label = b.pipeline.get('label');
-  label.push(renameIDLabels(shortIDLabels));
+  label.splice(0, 1, renameIDLabels(shortIDLabels));
 
   // write modules to the multiple output streams
   var pack = b.pipeline.get('pack');
-
-  // write modules to the new dest file
-  pack.splice(0, 1, through.obj(function(row, enc, next) {
-    streams[row.destFile].push(row);
-    next();
-  }));
-
-  // close each stream
-  pack.on('end', function() {
-    forOwn(streams, function(stream) {
-      stream.push(null);
-    });
-  });
+  pack.splice(0, 1, writeStreams(streams));
 
 }
 
@@ -144,7 +141,14 @@ function normalizeOptions(b, opts) {
   if (opts.url && opts.url.slice(-1) != '/') {
     opts.url += '/';
   }
-  opts.cwd = b._basedir || path.dirname(opts.map) || process.cwd();
+
+  var mapFile = opts.map;
+  var mapIsFile = (typeof mapFile == 'string');
+  if (mapIsFile) {
+    opts.map = JSON.parse(fs.readFileSync(mapFile));
+  }
+
+  opts.cwd = b._basedir || (mapIsFile && path.dirname(mapFile)) || process.cwd();
   opts.output = opts.output || opts.o || opts.cwd;
   return opts;
 }
@@ -167,18 +171,39 @@ function arrayToObject(array) {
   return obj;
 }
 
+function renameIDLabels(map) {
+  var buf = []; // buffer so each row is renamed before continuing
+  return through.obj(function(row, enc, next) {
+    if (map[row.id]) {
+      row.id = map[row.id];
+    }
+    forOwn(row.deps, function(dep, key) {
+      if (map[dep]) {
+        row.deps[key] = map[dep];
+      }
+    });
+    buf.push(row);
+    next();
+  }, function() {
+    buf.forEach(function(row) {
+      this.push(row);
+    }, this);
+    this.push(null);
+  });
+}
+
 function createFileMap(modules, files) {
   var map = {};
   var modsByID = {};
 
-  forOwn(modules, function(mod) {
+  forOwn(modules, function(mod, id) {
     modsByID[mod.id] = mod;
   });
 
   function search(deps, id, level) {
     forOwn(deps, function(_id) {
       var mod = modsByID[_id];
-      map[id].push(files.indexOf(mod.destFile));
+      append(map[id], files.indexOf(mod.destFile));
       if (level < 3) search(mod.deps, id, level + 1);
     });
   }
@@ -188,21 +213,6 @@ function createFileMap(modules, files) {
     search(mod.deps, mod.id, 0);
   });
   return map;
-}
-
-function renameIDLabels(map) {
-  return through.obj(function(row, enc, next) {
-    if (map[row.id]) {
-      row.id = map[row.id];
-      forOwn(row.deps, function(dep, key) {
-        if (map[dep]) {
-          row.deps[key] = map[dep];
-        }
-      });
-    }
-    this.push(row);
-    next();
-  });
 }
 
 function newlinesIn(buf) {
@@ -237,7 +247,6 @@ function wrap(opts) {
   return stream;
 
   function write(row, enc, next) {
-
     if (first && opts.prelude) {
       stream.push(defaultPrelude);
     }
@@ -294,6 +303,27 @@ function wrap(opts) {
       var comment = sourcemap.comment();
       stream.push(new Buffer('\n' + comment + '\n'));
     }
+    stream.push(null);
   }
 
+}
+
+function writeStreams(streams) {
+  var count = 0;
+  var s = through.obj(function(row, enc, next) {
+    streams[row.destFile].push(row);
+    next();
+  }, function() {
+    forOwn(streams, function(stream, file) {
+      // add event to see if all streams have finished
+      stream.on('finish', function() {
+        if (++count == Object.keys(streams).length) {
+          s.push(null);
+        }
+      });
+      // close each stream
+      stream.push(null);
+    });
+  });
+  return s;
 }
