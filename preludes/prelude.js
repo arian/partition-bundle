@@ -166,6 +166,9 @@ function __requireAll(ids, fn) {
 
 var loaded = [];
 
+// it's possible to set those options as a global
+var opts = global.loadjs || {};
+
 var loadjs = global.loadjs = function(deps, fn) {
 
   // find modules that are not loaded yet
@@ -204,7 +207,7 @@ var loadjs = global.loadjs = function(deps, fn) {
 
 loadjs.d = __define;
 
-loadjs.url = '';
+loadjs.url = opts.url || '';
 loadjs.files = [];
 loadjs.map = {};
 

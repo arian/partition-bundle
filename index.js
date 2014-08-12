@@ -299,7 +299,9 @@ function wrap(opts) {
 
     if (first && opts.prelude) {
 
-      stream.push(new Buffer('\nloadjs.url = "' + opts.url + '";'));
+      if (opts.url) {
+        stream.push(new Buffer('\nloadjs.url = "' + opts.url + '";'));
+      }
 
       stream.push(new Buffer('\nloadjs.files = [' + opts.files.map(function(file) {
         return '"' + file + '"';
