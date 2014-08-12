@@ -32,7 +32,7 @@ function __require(id) {
 }
 
 function __requireAll(ids, fn) {
-  fn(fold(ids, [], function(id, i, exports) {
+  fn.apply(null, fold(ids, [], function(id, i, exports) {
     exports.push(__require(id));
     return exports;
   }));
