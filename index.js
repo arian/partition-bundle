@@ -269,6 +269,14 @@ function wrap(opts) {
       );
     }
 
+
+    // make sure the deduped file requires the other module correctly.
+    // Browserify requires "require(dedupeIndex)". In our case however, it
+    // is easier to simply require by the module ID directly.
+    if (row.dedupe) {
+      row.source = "module.exports=require(" + JSON.stringify(opts.labels[row.dedupe]) + ");";
+    }
+
     var deps = Object.keys(row.deps || {}).sort().map(function (key) {
       return JSON.stringify(key) + ':' + JSON.stringify(row.deps[key]);
     }).join(',');
