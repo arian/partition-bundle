@@ -65,6 +65,7 @@ function installBundlePipeline(pipeline, opts) {
       .pipe(sort())
       .pipe(wrap({
         prelude: file == firstFile,
+        firstFile: firstFile,
         files: Object.keys(opts.map),
         map: modulesByID,
         labels: shortIDLabels,
@@ -203,25 +204,38 @@ function renameIDLabels(map) {
   });
 }
 
-function createFileMap(modules, files) {
+function createFileMap(modules, files, entry) {
   var map = {};
   var modsByID = {};
 
   forOwn(modules, function(mod, id) {
     modsByID[mod.id] = mod;
+    map[mod.id] = [];
   });
 
-  function search(deps, id, level) {
+  function push(id, dest) {
+    if (dest != entry) {
+      append(map[id], files.indexOf(dest));
+    }
+  }
+
+  function search(deps, id, searched, log) {
     forOwn(deps, function(_id) {
       var mod = modsByID[_id];
-      append(map[id], files.indexOf(mod.destFile));
-      if (level < 3) search(mod.deps, id, level + 1);
+
+      if (searched[_id]) return;
+      searched[_id] = true;
+
+      push(id, mod.destFile);
+      search(mod.deps, id, searched, log);
     });
   }
 
   forOwn(modules, function(mod) {
-    map[mod.id] = [files.indexOf(mod.destFile)];
-    search(mod.deps, mod.id, 0);
+    var searched = {};
+    searched[mod.id] = true;
+    push(mod.id, mod.destFile);
+    search(mod.deps, mod.id, searched, (mod.id + '').match(/editsmark/i));
   });
   return map;
 }
@@ -309,7 +323,7 @@ function wrap(opts) {
 
       stream.push(new Buffer([
         '\nloadjs.map = ',
-        JSON.stringify(createFileMap(opts.map, opts.files)),
+        JSON.stringify(createFileMap(opts.map, opts.files, opts.firstFile)),
         ';'
       ].join('')));
 
