@@ -19,7 +19,27 @@ function partition(b, opts) {
 
   opts = normalizeOptions(b, opts);
 
-  var map = opts.map;
+  // require the modules from the map
+  forOwn(opts.map, function(modules, file) {
+    modules.forEach(function(mod, i) {
+      modules[i] = mod = ensureJSFileName(path.resolve(opts.cwd, mod));
+      b.require(mod, {expose: mod, entry: true});
+    });
+  });
+
+  // on reset, a new pipeline is installed, make sure we
+  // alter this one new one with our events too.
+  b.on('reset', function() {
+    installBundlePipeline(b.pipeline, opts);
+  });
+
+  // install initial pipeline
+  installBundlePipeline(b.pipeline, opts);
+
+}
+
+function installBundlePipeline(pipeline, opts) {
+
   var cwd = opts.cwd;
 
   var modulesByID = {};
@@ -27,21 +47,11 @@ function partition(b, opts) {
   var shortIDLabels = {};
   var labelCount = 1;
 
-  // output files
-  var files = Object.keys(map);
   // streams for the output files
   var streams = {};
 
   // first file, with prelude
   var firstFile = path.resolve(cwd, "main.js");
-
-  // require the modules from the map
-  files.forEach(function(file) {
-    map[file].forEach(function(mod, i) {
-      map[file][i] = mod = ensureJSFileName(path.resolve(cwd, mod));
-      b.require(mod, {expose: mod, entry: true});
-    });
-  });
 
   function createStream(file) {
     // create output stream for this file
@@ -55,8 +65,9 @@ function partition(b, opts) {
       .pipe(sort())
       .pipe(wrap({
         prelude: file == firstFile,
-        files: files,
+        files: Object.keys(opts.map),
         map: modulesByID,
+        labels: shortIDLabels,
         url: opts.url
       }))
       .pipe(ws);
@@ -71,13 +82,13 @@ function partition(b, opts) {
     return stream;
   }
 
-  var deps = b.pipeline.get('deps');
+  var deps = pipeline.get('deps');
 
   // initialize objects
   deps.on('data', function(row) {
     modulesByID[row.id] = row;
     moduleBelongsTo[row.id] = {};
-    if (row.expose || row.entry) {
+    if ((row.expose || row.entry) && !shortIDLabels[row.id]) {
       shortIDLabels[row.id] = relativeID(cwd + '/a', path.resolve(cwd, row.file));
     } else {
       shortIDLabels[row.id] = labelCount++;
@@ -98,7 +109,7 @@ function partition(b, opts) {
 
   deps.on('end', function() {
     var first = 0;
-    forOwn(map, function(_deps, file) {
+    forOwn(opts.map, function(_deps, file) {
       if (first++ === 0) firstFile = file;
       // top level dependencies
       depsBelongTo(arrayToObject(_deps), file);
@@ -126,11 +137,11 @@ function partition(b, opts) {
   });
 
   // replace labels by shorter IDs, if they are not replaced by numbers
-  var label = b.pipeline.get('label');
+  var label = pipeline.get('label');
   label.splice(0, 1, renameIDLabels(shortIDLabels));
 
   // write modules to the multiple output streams
-  var pack = b.pipeline.get('pack');
+  var pack = pipeline.get('pack');
   pack.splice(0, 1, writeStreams(streams));
 
 }
