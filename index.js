@@ -167,6 +167,7 @@ function normalizeOptions(b, opts) {
 
 function relativeID(from, to){
   var file = path.relative(path.dirname(from), to);
+  file = file.replace(/\\/g, '/').replace(/\/$/g, '');
   if (file[0] != '.') file = './' + file;
   return (path.extname(file) == '.js') ? file.slice(0, -3) : file;
 }
