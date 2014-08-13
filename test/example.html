@@ -2,13 +2,22 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <script src="fixtures/out/entry.js"></script>
+  <script src="../dist/entry.js"></script>
   <script>
 
     // browserify -p [ ./index.js --map test/fixtures/map.json --url fixtures/out -o test/fixtures/out ]
 
     loadjs(['./a', './e', './f/index'], function(a, e, f) {
       console.log(a, e, f);
+    });
+
+    loadjs(['./k'], function(k) {
+      console.log(k);
+
+      loadjs(['./n'], function(n) {
+        console.log(n);
+      });
+
     });
 
   </script>

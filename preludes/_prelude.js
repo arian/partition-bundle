@@ -4,6 +4,7 @@ var parallel   = require('../lib/parallel');
 var loadScript = require('../lib/loadScript');
 var fold       = require('../lib/fold');
 var append     = require('../lib/append');
+var indexOf    = require('../lib/indexOf');
 
 var cache = {};
 var modules = {};
@@ -45,15 +46,15 @@ var opts = global.loadjs || {};
 
 var loadjs = global.loadjs = function(deps, fn) {
 
-  // find modules that are not loaded yet
-  var modulesToLoad = fold(deps, [], function(module, key, acc) {
-    return (modules[module]) ? acc : append(acc, module);
-  });
-
   // and if we need to load external files
-  var filesToLoad = fold(modulesToLoad, [], function(module, key, toLoad) {
+  var filesToLoad = fold(deps, [], function(module, key, toLoad) {
     return fold(loadjs.map[module] || [], toLoad, function(fIndex, i, toLoad) {
-      return append(toLoad, loadjs.files[fIndex]);
+      var file = loadjs.files[fIndex];
+      if (indexOf(loaded, file) == -1) {
+        loaded.push(file);
+        toLoad.push(file);
+      }
+      return toLoad;
     });
   });
 

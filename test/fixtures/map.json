@@ -1,5 +1,8 @@
 {
   "entry.js": ["./a"],
-  "common.js": ["./b", "./f/index"],
-  "common/extra.js": ["./e", "./d"]
+  "common.js": ["./b", "./e", "./f/index"],
+  "common/extra.js": ["./d"],
+
+  "common/1.js": ["./k", "n"],
+  "common/2.js": ["./m", "./o"]
 }

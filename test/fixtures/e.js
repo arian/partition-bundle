@@ -1,7 +1,4 @@
 module.exports = {
   e: 'e',
-  c: require('./c'),
-  forOwn: require('mout/object/forOwn')
+  c: require('./c')
 };
-
-console.log('e');

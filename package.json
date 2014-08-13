@@ -19,7 +19,10 @@
     "mocha": "^1.21.3"
   },
   "scripts": {
-    "pretest": "browserify preludes/_prelude.js -o preludes/prelude.js || true; browserify test/browser.js -o dist/tests.js",
+    "build-prelude": "browserify preludes/_prelude.js -o preludes/prelude.js",
+    "build-tests": "browserify test/browser.js -o dist/tests.js",
+    "build-test-fixtures": "browserify -p [ ./index --map test/fixtures/map.json -o dist --url ../dist ]",
+    "pretest": "npm run build-prelude && npm run build-tests && npm run build-test-fixtures",
     "test": "jshint . && mocha test/node"
   },
   "repository": {
