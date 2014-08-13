@@ -160,7 +160,7 @@ function normalizeOptions(b, opts) {
     opts.map = JSON.parse(fs.readFileSync(mapFile));
   }
 
-  opts.cwd = b._basedir || (mapIsFile && path.dirname(mapFile)) || process.cwd();
+  opts.cwd = b._basedir || opts.basedir || (mapIsFile && path.dirname(mapFile)) || process.cwd();
   opts.output = opts.output || opts.o || opts.cwd;
   return opts;
 }
