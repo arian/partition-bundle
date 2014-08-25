@@ -33,4 +33,13 @@ describe('loadjs', function() {
     });
   });
 
+  it('should call the error function with an error if the module cannot be loaded', function(done) {
+    loadjs(['foobar'], function() {
+      done(new Error('should not be called'));
+    }, function(err) {
+      expect(err).to.be.ok();
+      done();
+    });
+  });
+
 });

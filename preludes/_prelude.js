@@ -20,23 +20,30 @@ function __require(id) {
     var exports = module.exports = {};
     if (modules[id]) {
       var _req = function(_id) {
-        return __require(modules[id].deps[_id]);
+        return __require(modules[id].deps[_id]).exports;
       };
       modules[id].def.call(exports, _req, module, exports);
     } else {
       var err = new Error('Cannot find module \'' + id + '\'');
-      err.code = 'MODULE_NOT_FOUND';
-      throw err;
+      module.err = err.code = 'MODULE_NOT_FOUND';
     }
   }
-  return module.exports;
+  return module;
 }
 
 function __requireAll(ids, fn) {
-  fn.apply(null, fold(ids, [], function(id, i, exports) {
-    exports.push(__require(id));
-    return exports;
+  fn.apply(null, fold(ids, [[], []], function(id, i, args) {
+    var module = __require(id);
+    args[module.err ? 0 : 1].push(module.err || module.exports);
+    return args;
   }));
+}
+
+function defaultErrFn(err) {
+  throw err;
+}
+
+function noop() {
 }
 
 var loaded = [];
@@ -44,7 +51,10 @@ var loaded = [];
 // it's possible to set those options as a global
 var opts = global.loadjs || {};
 
-var loadjs = global.loadjs = function(deps, fn) {
+var loadjs = global.loadjs = function(deps, fn, errFn) {
+
+  if (!fn) fn = noop;
+  if (!errFn) errFn = defaultErrFn;
 
   // and if we need to load external files
   var filesToLoad = fold(deps, [], function(module, key, toLoad) {
@@ -68,17 +78,18 @@ var loadjs = global.loadjs = function(deps, fn) {
 
   // execute tasks to load external files
   parallel(loadTasks, function() {
-    fold(parallel.errors(arguments), null, function(err) {
-      // throw error, but don't block the execution
-      setTimeout(function() {
-        throw err;
-      }, 0);
-    });
-    __requireAll(deps, fn);
+    var errors = parallel.errors(arguments);
+    if (errors.length) {
+      errFn(errors[0]);
+    } else {
+      __requireAll(deps, function(errors, exports) {
+        if (errors.length) errFn(errors[0]);
+        else fn.apply(null, exports);
+      });
+    }
   });
 
 };
-
 
 loadjs.d = __define;
 
