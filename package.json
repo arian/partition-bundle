@@ -1,6 +1,6 @@
 {
   "name": "partition-bundle",
-  "version": "1.0.11",
+  "version": "1.0.12",
   "description": "A Browserify plugin to pack multiple related modules together and load modules on-demand",
   "main": "index.js",
   "directories": {
