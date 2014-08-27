@@ -205,7 +205,7 @@ var loadjs = global.loadjs = function(deps, fn, errFn) {
   // execute tasks to load external files
   parallel(loadTasks, function() {
     var errors = parallel.errors(arguments);
-    if (errors && errors.length) {
+    if (errors.length) {
       errFn(errors[0]);
     } else {
       __requireAll(deps, function(errors, exports) {
