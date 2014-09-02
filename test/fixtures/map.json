@@ -4,5 +4,10 @@
   "common/extra.js": ["./d"],
 
   "common/1.js": ["./k", "n"],
-  "common/2.js": ["./m", "./o"]
+  "common/2.js": ["./m", "./o"],
+
+  "common/3.js": ["./p", "./q"],
+
+  "common/4.js": ["./r"],
+  "common/5.js": ["./s"]
 }

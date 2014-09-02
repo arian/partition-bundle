@@ -46,7 +46,21 @@ function defaultErrFn(err) {
 function noop() {
 }
 
+var loading = {};
 var loaded = [];
+
+function loadScriptFile(file) {
+  loadScript(loadjs.url + file, function(err) {
+    var cbs = loading[file];
+    if (!err) {
+      loading[file] = null;
+      loaded.push(file);
+    }
+    fold(cbs, 0, function(cb) {
+      cb(err, file);
+    });
+  });
+}
 
 // it's possible to set those options as a global
 var opts = global.loadjs || {};
@@ -57,26 +71,32 @@ var loadjs = global.loadjs = function(deps, fn, errFn) {
   if (!errFn) errFn = defaultErrFn;
 
   // and if we need to load external files
-  var filesToLoad = fold(deps, [], function(module, key, toLoad) {
-    return fold(loadjs.map[module] || [], toLoad, function(fIndex, i, toLoad) {
+  var filesToWatch = fold(deps, [], function(module, key, toWatch) {
+    return fold(loadjs.map[module] || [], toWatch, function(fIndex, i, toLoad) {
       var file = loadjs.files[fIndex];
       if (indexOf(loaded, file) == -1) {
-        loaded.push(file);
         toLoad.push(file);
       }
       return toLoad;
     });
   });
 
-  // map to tasks that load the external file
-  var loadTasks = fold(filesToLoad, [], function(file, key, tasks) {
+  // files that are not yet loading
+  var filesToLoad = fold(filesToWatch, [], function(file, key, files) {
+    return loading[file] ? files : append(files, file);
+  });
+
+  var loadTasks = fold(filesToWatch, [], function(file, key, tasks) {
+    // subscribe to the array of callbacks that is
+    // called when the file is loaded
     tasks.push(function(cb) {
-      loadScript(loadjs.url + file, cb);
+      if (loading[file]) loading[file].push(cb);
+      else loading[file] = [cb];
     });
     return tasks;
   });
 
-  // execute tasks to load external files
+  // when all files are loaded, the modules can be required
   parallel(loadTasks, function() {
     var errors = parallel.errors(arguments);
     if (errors.length) {
@@ -88,6 +108,9 @@ var loadjs = global.loadjs = function(deps, fn, errFn) {
       });
     }
   });
+
+  // trigger loading the files, if necessary
+  fold(filesToLoad, 0, loadScriptFile);
 
 };
 

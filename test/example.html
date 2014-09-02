@@ -7,8 +7,8 @@
 
     // browserify -p [ ./index.js --map test/fixtures/map.json --url fixtures/out -o test/fixtures/out ]
 
-    loadjs(['./a', './e', './f/index'], function(a, e, f) {
-      console.log(a, e, f);
+    loadjs(['./a', './e', './f/index', './r'], function(a, e, f, r) {
+      console.log(a, e, f, r);
     });
 
     loadjs(['./k'], function(k) {

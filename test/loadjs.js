@@ -42,4 +42,26 @@ describe('loadjs', function() {
     });
   });
 
+  it('should require two modules from the same file at the same time', function(done) {
+    var modules = {};
+    var l = 0;
+    function ready(x) {
+      modules[x] = x;
+      if (++l == 2) {
+        expect(modules).to.eql({p: 'p', q: 'q'});
+        done();
+      }
+    }
+    loadjs(['./p'], ready, done);
+    loadjs(['./q'], ready, done);
+  });
+
+  it('should load two modules from two JS files', function(done) {
+    loadjs(['./r', './s'], function(r, s) {
+      expect(r).to.be('r');
+      expect(s).to.be('s');
+      done();
+    }, done);
+  });
+
 });
