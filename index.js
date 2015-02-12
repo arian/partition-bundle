@@ -301,8 +301,8 @@ function wrap(opts) {
     // Browserify requires "require(dedupeIndex)". In our case however, it
     // is easier to simply require by the module ID directly.
     if (row.dedupe) {
-      row.source = "module.exports=require(" + row.dedupeIndex + ");";
-      deps[row.dedupeIndex] = opts.labels[row.dedupe];
+      row.source = "module.exports=require(0);";
+      deps[0] = opts.labels[row.dedupe];
     }
 
     deps = Object.keys(deps).sort().map(function (key) {

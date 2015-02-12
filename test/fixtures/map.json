@@ -9,5 +9,7 @@
   "common/3.js": ["./p", "./q"],
 
   "common/4.js": ["./r"],
-  "common/5.js": ["./s"]
+  "common/5.js": ["./s"],
+  "dedupe.js": ["./dedupe/index"],
+  "dedupe2.js": ["./dedupe/b/x"]
 }
