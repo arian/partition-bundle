@@ -25,7 +25,8 @@ function __require(id) {
       modules[id].def.call(exports, _req, module, exports);
     } else {
       var err = new Error('Cannot find module \'' + id + '\'');
-      module.err = err.code = 'MODULE_NOT_FOUND';
+      err.code = 'MODULE_NOT_FOUND';
+      module.err = err;
     }
   }
   return module;
