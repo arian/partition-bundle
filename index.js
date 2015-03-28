@@ -121,7 +121,7 @@ function normalizeOptions(b, opts) {
   if (opts.url && opts.url.slice(-1) != '/') {
     opts.url += '/';
   }
-  opts.crossDependencyFile = opts.crossDependencyFile || false;
+  opts.crossDependencyFile = opts.crossDependencyFile || opts['cross-dependency-file'] || false;
 
   var mapFile = opts.map;
   var mapIsFile = (typeof mapFile == 'string');
