@@ -9,13 +9,14 @@ var fs = require('fs');
 var fold = require('./lib/fold');
 var forOwn = require('./lib/forOwn');
 var append = require('./lib/append');
+var partition = require('./lib/partition');
 
 var defaultPreludePath = path.join(__dirname, 'preludes', 'prelude.js');
 var defaultPrelude = fs.readFileSync(defaultPreludePath);
 
-module.exports = partition;
+module.exports = partitionBundle;
 
-function partition(b, opts) {
+function partitionBundle(b, opts) {
 
   opts = normalizeOptions(b, opts);
 
@@ -42,18 +43,13 @@ function installBundlePipeline(pipeline, opts) {
 
   var cwd = opts.cwd;
 
-  var modulesByID = {};
-  var moduleBelongsTo = {};
   var shortIDLabels = {};
   var labelCount = 1;
 
   // streams for the output files
   var streams = {};
 
-  // first file, with prelude
-  var firstFile = path.resolve(cwd, "main.js");
-
-  function createStream(file) {
+  function createStream(file, modulesByID, firstFile) {
     // create output stream for this file
     var stream = through.obj();
     var outFile = path.resolve(opts.output, file);
@@ -83,12 +79,12 @@ function installBundlePipeline(pipeline, opts) {
     return stream;
   }
 
+  var partitioner = partition(opts.map, path.resolve(cwd, "main.js"));
   var deps = pipeline.get('deps');
 
   // initialize objects
   deps.on('data', function(row) {
-    modulesByID[row.id] = row;
-    moduleBelongsTo[row.id] = {};
+    partitioner.addModule(row);
     if ((row.expose || row.entry) && !shortIDLabels[row.id]) {
       shortIDLabels[row.id] = relativeID(cwd + '/a', path.resolve(cwd, row.file));
     } else {
@@ -96,44 +92,14 @@ function installBundlePipeline(pipeline, opts) {
     }
   });
 
-  // search through the dependencies recursively, and associate each dependency
-  // to a target file
-  function depsBelongTo(deps, file) {
-    forOwn(deps, function(dep) {
-      dep = modulesByID[dep];
-      var belong = moduleBelongsTo[dep.id];
-      var count = belong[file] = (belong[file] || 0) + 1;
-      // stop at 3, otherwise it might be a cyclic dependency
-      if (count <= 3) depsBelongTo(dep.deps, file);
-    });
-  }
-
   deps.on('end', function() {
-    var first = 0;
-    forOwn(opts.map, function(_deps, file) {
-      if (first++ === 0) firstFile = file;
-      // top level dependencies
-      depsBelongTo(arrayToObject(_deps), file);
-      createStream(file);
-    });
-
-    if (!streams[firstFile]) createStream(firstFile);
-
-    forOwn(moduleBelongsTo, function(files, id) {
-      // determine which file claims the module the most. If it's a dangling
-      // file, it's automatically added to the 'main.js'
-      var file = firstFile;
-      var count = 0;
-      for (var f in files) if (f == firstFile || files[f] > count){
-        file = f;
-        count = files[f];
-        // even though a module really belongs to another file, but is
-        // required by the main file, it should be in the main file.
-        // This solves immediate loading of a second file in the browser
-        if (f == firstFile) break;
-      }
-      // assign the destination file
-      modulesByID[id].destFile = file;
+    var partitioned = partitioner.partition();
+    partitioned.files.forEach(function(file) {
+      streams[file] = createStream(
+        file,
+        partitioned.modulesByID,
+        partitioned.firstFile
+      );
     });
   });
 
@@ -159,6 +125,9 @@ function normalizeOptions(b, opts) {
   if (mapIsFile) {
     opts.map = JSON.parse(fs.readFileSync(mapFile));
   }
+  if (!opts.map) {
+    opts.map = {};
+  }
 
   opts.cwd = b._basedir || opts.basedir || (mapIsFile && path.dirname(mapFile)) || process.cwd();
   opts.output = opts.output || opts.o || opts.cwd;
@@ -174,14 +143,6 @@ function relativeID(from, to){
 
 function ensureJSFileName(filename) {
   return filename + ((path.extname(filename) === '') ? '.js' : '');
-}
-
-function arrayToObject(array) {
-  var obj = {};
-  array.forEach(function(item) {
-    obj[item] = item;
-  });
-  return obj;
 }
 
 function renameIDLabels(map) {
