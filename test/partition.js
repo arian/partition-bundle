@@ -88,4 +88,25 @@ describe('partition', function() {
     });
   });
 
+  it('should give precedence to what the map dictates', function() {
+    var partitioner = partition({
+      'x.js': ['a'],
+      'y.js': ['b', 'c'],
+      'z.js': ['d']
+    }, 'main.js');
+    partitioner.addModule({id: 'a', deps: {}});
+    partitioner.addModule({id: 'b', deps: {}});
+    partitioner.addModule({id: 'c', deps: {}});
+    partitioner.addModule({id: 'd', deps: {'./e': 'e', './c': 'c'}});
+    partitioner.addModule({id: 'e', deps: {'./c': 'c'}});
+    var partitioned = partitioner.partition();
+    expect(destFiles(partitioned.modulesByID)).to.eql({
+      'a': 'x.js',
+      'b': 'y.js',
+      'c': 'y.js',
+      'd': 'z.js',
+      'e': 'z.js'
+    });
+  });
+
 });
