@@ -69,6 +69,8 @@ function installBundlePipeline(pipeline, opts) {
       }))
       .pipe(ws);
 
+    createCrossDependencyFile(opts.crossDependencyFile, modulesByID, cwd);
+
     // kinda hacky, to notify the stream has finished, unfortunately
     // doesn't seem to happen automatically
     ws.on('finish', function() {
@@ -119,6 +121,7 @@ function normalizeOptions(b, opts) {
   if (opts.url && opts.url.slice(-1) != '/') {
     opts.url += '/';
   }
+  opts.crossDependencyFile = opts.crossDependencyFile || false;
 
   var mapFile = opts.map;
   var mapIsFile = (typeof mapFile == 'string');
@@ -166,12 +169,21 @@ function renameIDLabels(map) {
   });
 }
 
-function createFileMap(modules, files, entry) {
-  var map = {};
+function getModsByID(modules) {
   var modsByID = {};
 
   forOwn(modules, function(mod, id) {
     modsByID[mod.id] = mod;
+  });
+
+  return modsByID;
+}
+
+function createFileMap(modules, files, entry) {
+  var map = {};
+  var modsByID = getModsByID(modules);
+
+  forOwn(modules, function(mod, id) {
     map[mod.id] = [];
   });
 
@@ -199,7 +211,54 @@ function createFileMap(modules, files, entry) {
     push(mod.id, mod.destFile);
     search(mod.deps, mod.id, searched, (mod.id + '').match(/editsmark/i));
   });
+
   return map;
+}
+
+function createCrossDependencyFile(crossDependencyFile, modules, cwd) {
+  if (crossDependencyFile) {
+    var destFilesDeps = {};
+    var modsByID = getModsByID(modules);
+
+    forOwn(modules, function(mod) {
+      if (destFilesDeps[mod.destFile] === void 0) {
+        destFilesDeps[mod.destFile] = [];
+      }
+
+      var depNames = [];
+      Object.keys(mod.deps).forEach(function(modFile) {
+        var modId = mod.deps[modFile];
+        var depById = modsByID[modId];
+        depNames.push(depById);
+      });
+      destFilesDeps[mod.destFile] = destFilesDeps[mod.destFile].concat(depNames);
+    });
+
+    var depsIntersection = {};
+    Object.keys(destFilesDeps).forEach(function(destFile) {
+      var deps = destFilesDeps[destFile];
+      var intersection = {};
+      deps.forEach(function(dep) {
+        if (dep.destFile !== destFile) {
+          if (intersection[dep.destFile] === void 0) {
+            intersection[dep.destFile] = [];
+          }
+          var fileName = dep.file.replace(path.resolve(cwd), '.');
+          if (intersection[dep.destFile].indexOf(fileName) === -1) {
+            intersection[dep.destFile].push(fileName);
+          }
+        }
+      });
+
+      depsIntersection[destFile] = intersection;
+    });
+
+    fs.writeFile(crossDependencyFile, JSON.stringify(depsIntersection, null, 4), function(err) {
+      if(err) {
+        return console.log(err);
+      }
+    });
+  }
 }
 
 function newlinesIn(buf) {
