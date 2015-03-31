@@ -50,12 +50,18 @@ function noop() {
 var loading = {};
 var loaded = [];
 
+function fileLoaded(file) {
+  if (indexOf(loaded, file) == -1) {
+    loaded.push(file);
+  }
+}
+
 function loadScriptFile(file) {
   loadScript(loadjs.url + file, function(err) {
     var cbs = loading[file];
     if (!err) {
       loading[file] = null;
-      loaded.push(file);
+      fileLoaded(file);
     }
     fold(cbs, 0, function(cb) {
       cb(err, file);
@@ -116,6 +122,7 @@ var loadjs = global.loadjs = function(deps, fn, errFn) {
 };
 
 loadjs.d = __define;
+loadjs.fileLoaded = fileLoaded;
 
 loadjs.url = opts.url || '';
 loadjs.files = [];

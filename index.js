@@ -293,6 +293,8 @@ function wrap(opts) {
 
     }
 
+    stream.push(new Buffer('\nloadjs.fileLoaded("' + file + '");'));
+
     first = false;
     next();
   }
