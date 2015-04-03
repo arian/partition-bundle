@@ -275,6 +275,10 @@ function wrap(opts) {
     stream.push(wrappedSource);
     lineno += newlinesIn(wrappedSource);
 
+    if (first) {
+        stream.push(new Buffer('\nloadjs.fileLoaded("' + row.destFile + '");'));
+    }
+
     if (first && opts.prelude) {
 
       if (opts.url) {
@@ -292,8 +296,6 @@ function wrap(opts) {
       ].join('')));
 
     }
-
-    stream.push(new Buffer('\nloadjs.fileLoaded("' + file + '");'));
 
     first = false;
     next();
