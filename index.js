@@ -6,6 +6,7 @@ var combineSourceMap = require('combine-source-map');
 var mkdirp = require('mkdirp');
 var path = require('path');
 var fs = require('fs');
+var bresolve = require('browser-resolve');
 var fold = require('./lib/fold');
 var forOwn = require('./lib/forOwn');
 var append = require('./lib/append');
@@ -23,7 +24,7 @@ function partitionBundle(b, opts) {
   // require the modules from the map
   forOwn(opts.map, function(modules, file) {
     modules.forEach(function(mod, i) {
-      modules[i] = mod = ensureJSFileName(path.resolve(opts.cwd, mod));
+      modules[i] = mod = bresolve.sync(mod, {basedir: opts.mapDir});
       b.require(mod, {expose: mod, entry: true});
     });
   });
@@ -53,7 +54,8 @@ function installBundlePipeline(pipeline, opts) {
     // create output stream for this file
     var stream = through.obj();
     var outFile = path.resolve(opts.output, file);
-    mkdirp.sync(path.dirname(outFile));
+    var outDir = path.dirname(outFile);
+    mkdirp.sync(outDir);
 
     var ws = fs.createWriteStream(outFile);
 
@@ -129,7 +131,9 @@ function normalizeOptions(b, opts) {
     opts.map = {};
   }
 
-  opts.cwd = b._basedir || opts.basedir || (mapIsFile && path.dirname(mapFile)) || process.cwd();
+  var cwd = b._basedir || opts.basedir || (mapIsFile && path.dirname(mapFile)) || path.resolve(process.cwd());
+  opts.cwd = path.resolve(cwd);
+  opts.mapDir = mapIsFile ? path.resolve(path.dirname(mapFile)) : opts.cwd;
   opts.output = opts.output || opts.o || opts.cwd;
   return opts;
 }

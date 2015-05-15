@@ -3,7 +3,7 @@
   "common.js": ["./b", "./e", "./f/index"],
   "common/extra.js": ["./d"],
 
-  "common/1.js": ["./k", "n"],
+  "common/1.js": ["./k", "./n"],
   "common/2.js": ["./m", "./o"],
 
   "common/3.js": ["./p", "./q"],

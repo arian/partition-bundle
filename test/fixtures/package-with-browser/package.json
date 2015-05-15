@@ -1,0 +1,8 @@
+{
+  "name": "package-with-browser",
+  "version": "1.0",
+  "browser": {
+    "mylib": "./lib/mylib/index.js",
+    "hislib": "./lib/hislib/index.js"
+  }
+}

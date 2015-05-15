@@ -1,0 +1,4 @@
+{
+  "app.js": ["./index"],
+  "lib.js": ["mylib", "hislib"]
+}
