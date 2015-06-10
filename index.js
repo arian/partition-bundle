@@ -25,7 +25,7 @@ function partitionBundle(b, opts) {
   forOwn(opts.map, function(modules, file) {
     modules.forEach(function(mod, i) {
       modules[i] = mod = bresolve.sync(mod, {basedir: opts.mapDir});
-      b.require(mod, {expose: mod, entry: true});
+      b.require(mod, {entry: true});
     });
   });
 
@@ -67,7 +67,8 @@ function installBundlePipeline(pipeline, opts) {
         files: Object.keys(opts.map),
         map: modulesByID,
         labels: shortIDLabels,
-        url: opts.url
+        url: opts.url,
+        main: opts.main
       }))
       .pipe(ws);
 
@@ -302,6 +303,10 @@ function wrap(opts) {
   }
 
   function end() {
+    if (opts.main && opts.prelude) {
+      stream.push(new Buffer("loadjs(" + JSON.stringify([opts.main]) + ");\n"));
+    }
+
     if (sourcemap) {
       var comment = sourcemap.comment();
       stream.push(new Buffer('\n' + comment + '\n'));
