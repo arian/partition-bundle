@@ -13,7 +13,7 @@ Example
 -------
 
 ```
-browserify -p [ partition-bundle --map mapping.json --output output/directory --url directory ]
+browserify -p [ partition-bundle --map mapping.json --output output/directory --url directory --main ./entry ]
 ```
 
 Configuration file
