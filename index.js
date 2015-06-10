@@ -136,6 +136,11 @@ function normalizeOptions(b, opts) {
   opts.cwd = path.resolve(cwd);
   opts.mapDir = mapIsFile ? path.resolve(path.dirname(mapFile)) : opts.cwd;
   opts.output = opts.output || opts.o || opts.cwd;
+
+  if (opts.main && !Array.isArray(opts.main)) {
+    opts.main = [opts.main];
+  }
+
   return opts;
 }
 
@@ -304,7 +309,7 @@ function wrap(opts) {
 
   function end() {
     if (opts.main && opts.prelude) {
-      stream.push(new Buffer("loadjs(" + JSON.stringify([opts.main]) + ");\n"));
+      stream.push(new Buffer("loadjs(" + JSON.stringify(opts.main) + ");\n"));
     }
 
     if (sourcemap) {
