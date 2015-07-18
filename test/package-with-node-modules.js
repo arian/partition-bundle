@@ -8,15 +8,15 @@ var browserify = require('browserify');
 
 var partition = require('../index');
 
-describe('browser field in package.json', function() {
+describe('packages from node_modules', function() {
 
-  it('should require modules from the browser field in the package.json', function(done) {
+  it('should require modules from node_modules', function(done) {
 
-    var dist = __dirname + '/../dist/package-with-browser';
+    var dist = __dirname + '/../dist/package-with-node-modules';
 
     browserify()
       .plugin(partition, {
-        map: __dirname + '/fixtures/package-with-browser/bundle.json',
+        map: __dirname + '/fixtures/package-with-node-modules/bundle.json',
         output: dist
       })
       .bundle(function(err) {
@@ -32,7 +32,7 @@ describe('browser field in package.json', function() {
         vm.runInContext(appjs, sandbox);
 
         expect(Object.keys(sandbox.loadjs.map).sort()).to.eql([
-          './',
+          './index',
           'hislib',
           'mylib'
         ]);

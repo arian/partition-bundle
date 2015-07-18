@@ -1,4 +1,4 @@
 {
-  "app.js": ["./"],
+  "app.js": ["./index"],
   "lib.js": ["mylib", "hislib"]
 }

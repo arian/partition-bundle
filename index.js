@@ -20,12 +20,15 @@ module.exports = partitionBundle;
 function partitionBundle(b, opts) {
 
   opts = normalizeOptions(b, opts);
+  var shortIDLabels = opts.shortIDLabels = {};
 
   // require the modules from the map
   forOwn(opts.map, function(modules, file) {
     modules.forEach(function(mod, i) {
-      modules[i] = mod = bresolve.sync(mod, {basedir: opts.mapDir});
-      b.require(mod, {entry: true});
+      var id = bresolve.sync(mod, {basedir: opts.mapDir});
+      shortIDLabels[id] = mod;
+      modules[i] = id;
+      b.require(id, {entry: true});
     });
   });
 
@@ -44,7 +47,7 @@ function installBundlePipeline(pipeline, opts) {
 
   var cwd = opts.cwd;
 
-  var shortIDLabels = {};
+  var shortIDLabels = opts.shortIDLabels;
   var labelCount = 1;
 
   // streams for the output files
@@ -88,9 +91,9 @@ function installBundlePipeline(pipeline, opts) {
   // initialize objects
   deps.on('data', function(row) {
     partitioner.addModule(row);
-    if ((row.expose || row.entry) && !shortIDLabels[row.id]) {
-      shortIDLabels[row.id] = relativeID(cwd + '/a', path.resolve(cwd, row.file));
-    } else {
+    // use a numeric label if the module doesn't have to be required
+    // by the user
+    if (!(row.expose || row.entry)) {
       shortIDLabels[row.id] = labelCount++;
     }
   });
