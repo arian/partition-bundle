@@ -22,10 +22,15 @@ function partitionBundle(b, opts) {
   opts = normalizeOptions(b, opts);
   var shortIDLabels = opts.shortIDLabels = {};
 
+  var rOpts = {
+    basedir: opts.mapDir,
+    extensions: b._extensions
+  };
+
   // require the modules from the map
   forOwn(opts.map, function(modules, file) {
     modules.forEach(function(mod, i) {
-      var id = bresolve.sync(mod, {basedir: opts.mapDir});
+      var id = bresolve.sync(mod, rOpts);
       shortIDLabels[id] = mod;
       modules[i] = id;
       b.require(id, {entry: true});
