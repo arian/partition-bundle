@@ -91,19 +91,20 @@ function installBundlePipeline(pipeline, opts) {
   }
 
   var partitioner = partition(opts.map, path.resolve(cwd, "main.js"));
-  var deps = pipeline.get('deps');
+  var deps = pipeline.get('sort');
 
   // initialize objects
-  deps.on('data', function(row) {
+  var rows = [];
+  deps.push(through.obj(function(row, enc, next) {
     partitioner.addModule(row);
     // use a numeric label if the module doesn't have to be required
     // by the user
     if (!(row.expose || row.entry)) {
       shortIDLabels[row.id] = labelCount++;
     }
-  });
-
-  deps.on('end', function() {
+    rows.push(row);
+    next();
+  }, function() {
     var partitioned = partitioner.partition();
     partitioned.files.forEach(function(file) {
       streams[file] = createStream(
@@ -112,7 +113,12 @@ function installBundlePipeline(pipeline, opts) {
         partitioned.firstFile
       );
     });
-  });
+
+    rows.forEach(function(row) {
+      this.push(row);
+    }, this);
+    this.push(null);
+  }));
 
   // replace labels by shorter IDs, if they are not replaced by numbers
   var label = pipeline.get('label');
@@ -168,6 +174,9 @@ function renameIDLabels(map) {
   return through.obj(function(row, enc, next) {
     if (map[row.id]) {
       row.id = map[row.id];
+    }
+    if (row.dedupe && map[row.dedupe]) {
+      row.dedupe = map[row.dedupe];
     }
     forOwn(row.deps, function(dep, key) {
       if (map[dep]) {
@@ -228,7 +237,7 @@ function newlinesIn(buf) {
 
 function wrapModule(row, deps) {
   return new Buffer([
-    'loadjs.d("',
+    '\nloadjs.d("',
     row.id,
     '",function(require,module,exports){\n',
     combineSourceMap.removeComments(row.source),
@@ -281,7 +290,7 @@ function wrap(opts) {
     // is easier to simply require by the module ID directly.
     if (row.dedupe) {
       row.source = "module.exports=require(0);";
-      deps[0] = opts.labels[row.dedupe];
+      deps[0] = row.dedupe;
     }
 
     deps = Object.keys(deps).sort().map(function (key) {
