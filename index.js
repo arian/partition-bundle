@@ -30,8 +30,9 @@ function partitionBundle(b, opts) {
   // require the modules from the map
   forOwn(opts.map, function(modules, file) {
     modules.forEach(function(mod, i) {
-      var id = bresolve.sync(mod, rOpts);
-      shortIDLabels[id] = mod;
+      var parsed = parseModuleIdLabel(mod);
+      var id = bresolve.sync(parsed.mod, rOpts);
+      shortIDLabels[id] = parsed.shortIdLabel;
       modules[i] = id;
       b.require(id, {entry: true});
     });
@@ -45,7 +46,14 @@ function partitionBundle(b, opts) {
 
   // install initial pipeline
   installBundlePipeline(b.pipeline, opts);
+}
 
+function parseModuleIdLabel(moduleName) {
+  var splited = moduleName.split(':');
+  return {
+    mod: splited[0],
+    shortIdLabel: splited[1] || splited[0]
+  };
 }
 
 function installBundlePipeline(pipeline, opts) {

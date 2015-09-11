@@ -38,6 +38,17 @@ The first row is the entry file. This file is the file you need to add to your
 page with a `<script src="entry.js"></script>`. This also includes necessary
 boilerplate to load the other files.
 
+### Use exposed name
+
+The module could be defined in format `file_path:expose_name` and be loaded by `loadjs(['expose_name'])`.
+
+```
+{
+  "entry.js": ["./a"],
+  "common.js": ["./b:common"]
+}
+```
+
 Loading modules
 ---------------
 
@@ -69,4 +80,3 @@ It can factor-out common modules in to different output files, but then you
 need to manually load the files with `<script>` tags. **partition-budle** can
 load the excluded modules later using the `loadjs` function and by simply using
 the module ID, rather than the final JS filename.
-
