@@ -23,7 +23,7 @@
   "scripts": {
     "build-prelude": "browserify preludes/_prelude.js -o preludes/prelude.js",
     "build-tests": "browserify test/browser.js -o dist/tests.js",
-    "build-test-fixtures": "browserify -p [ ./index --map test/fixtures/map.json -o dist --url ../dist ]",
+    "build-test-fixtures": "browserify -d -p [ ./index --map test/fixtures/map.json -o dist --url ../dist ]",
     "pretest": "rm -rf dist/**/*.js && npm run build-prelude && npm run build-tests && npm run build-test-fixtures",
     "test": "jshint . && mocha test/node"
   },

@@ -253,7 +253,7 @@ function wrap(opts) {
   if (!opts) opts = {};
 
   var first = true;
-  var lineno = (opts.prelude ? newlinesIn(defaultPrelude) : 0) + 1;
+  var lineno = (opts.prelude ? newlinesIn(defaultPrelude) : 0) + 2;
   var sourcemap;
 
   var stream = through.obj(write, end);
