@@ -67,6 +67,31 @@ describe('partition', function() {
     });
   });
 
+  it('should put second order shared dependency in the common file', function() {
+    var partitioner = partition({
+      'index.js': ['index'],
+      'a.js': ['a'],
+      'b.js': ['b']
+    }, 'index.js');
+    // a -> c -> e
+    // b -> d -> e
+    partitioner.addModule({id: 'index'});
+    partitioner.addModule({id: 'a', deps: {'./c': 'c'}});
+    partitioner.addModule({id: 'b', deps: {'./d': 'd'}});
+    partitioner.addModule({id: 'c', deps: {'./e': 'e'}});
+    partitioner.addModule({id: 'd', deps: {'./e': 'e'}});
+    partitioner.addModule({id: 'e'});
+    var partitioned = partitioner.partition();
+    expect(destFiles(partitioned.modulesByID)).to.eql({
+      'a': 'a.js',
+      'c': 'a.js',
+      'b': 'b.js',
+      'd': 'b.js',
+      'index': 'index.js',
+      'e': 'index.js'
+    });
+  });
+
   it('should put a module in the file where most dependent modules are', function() {
     var partitioner = partition({
       'x.js': ['a'],
