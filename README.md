@@ -57,6 +57,17 @@ The first row is the entry file. This file is the file you need to add to your
 page with a `<script src="entry.js"></script>`. This also includes necessary
 boilerplate to load the other files.
 
+### Use exposed name
+
+The module could be defined in format `file_path:expose_name` and be loaded by `loadjs(['expose_name'])`.
+
+```
+{
+  "entry.js": ["./a"],
+  "common.js": [{require: "./b.js", expose: "common"}]
+}
+```
+
 Loading modules
 ---------------
 

@@ -30,8 +30,15 @@ function partitionBundle(b, opts) {
   // require the modules from the map
   forOwn(opts.map, function(modules, file) {
     modules.forEach(function(mod, i) {
-      var id = bresolve.sync(mod, rOpts);
-      shortIDLabels[id] = mod;
+      if (typeof mod === 'string') {
+        mod = {
+          require: mod,
+          expose: mod
+        }
+      }
+
+      var id = bresolve.sync(mod.require, rOpts);
+      shortIDLabels[id] = mod.expose;
       modules[i] = id;
       b.require(id, {entry: true});
     });
