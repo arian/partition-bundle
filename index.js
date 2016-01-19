@@ -34,7 +34,7 @@ function partitionBundle(b, opts) {
         mod = {
           require: mod,
           expose: mod
-        }
+        };
       }
 
       var id = bresolve.sync(mod.require, rOpts);
