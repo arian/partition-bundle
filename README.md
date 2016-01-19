@@ -59,7 +59,7 @@ boilerplate to load the other files.
 
 ### Use exposed name
 
-The module could be defined in format `file_path:expose_name` and be loaded by `loadjs(['expose_name'])`.
+The module could be defined as an object with `require` and `expose` properties:
 
 ```
 {
@@ -67,6 +67,8 @@ The module could be defined in format `file_path:expose_name` and be loaded by `
   "common.js": [{require: "./b.js", expose: "common"}]
 }
 ```
+
+`b.js` can be loaded by calling `loadjs(['common'])`.
 
 Loading modules
 ---------------
