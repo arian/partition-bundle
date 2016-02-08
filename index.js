@@ -325,7 +325,6 @@ function wrap(opts) {
         stream.push(new Buffer('\nloadjs.url = "' + opts.url + '";'));
       }
 
-      console.log(opts.files, opts.loadjsPaths)
       stream.push(new Buffer('\nloadjs.files = [' + opts.loadjsPaths.map(function(file) {
         return '"' + file + '"';
       }).join(',') + ']'));
