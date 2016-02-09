@@ -48,7 +48,7 @@ function partitionBundle(b, opts) {
       var id = bresolve.sync(mod.require, rOpts);
       shortIDLabels[id] = mod.expose;
       modules[i] = id;
-      opts.loadjsPaths.push(mod.loadjsPath)
+      opts.loadjsPaths.push(mod.loadjsPath);
       b.require(id, {entry: true});
     });
   });
