@@ -70,6 +70,27 @@ The module could be defined as an object with `require` and `expose` properties:
 
 `b.js` can be loaded by calling `loadjs(['common'])`.
 
+### Use custom URL for loadjs
+
+To specify a custom path that loadjs will use when it generates the URL
+for the script tag that it appends to the page when encountering a new
+module to be loaded, you can use the `loadjsPath` option.
+
+This option is useful when you want the load path to be different from
+the output path. In the following usage example, suppose that you have used
+the plugin option `--output` and specified that the file should go into
+the `web` directory, so it lives in `<projectRoot>/web/common.js`. However,
+you want this file to always be served from `baseurl.com/js/common.js` rather
+than a path relative to whatever page the user is on. To do this, simply
+specify `loadjsPath` as shown:
+
+```
+{
+  "entry.js": ["./a"],
+  "common.js": [{require: "./b.js", loadjsPath: '/js/common.js'}]
+}
+```
+
 Loading modules
 ---------------
 
