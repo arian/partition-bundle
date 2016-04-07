@@ -21,6 +21,8 @@ browserify -p [ partition-bundle --map mapping.json --output output/directory --
                 configuration file and "dist" as the output option, the bundle generated will
                 be at "<project>/dist/entry.js".
 
+    --url       URL to where your bundles are served.
+
     --main      Defines which of the configured entry files is the main part of the bundle.
                 This will be automatically loaded with the loadjs() function. This has to be
                 one of the values in your configuration file; following the example below "./a"
