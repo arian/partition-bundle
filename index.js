@@ -21,6 +21,7 @@ function partitionBundle(b, opts) {
 
   opts = normalizeOptions(b, opts);
   var shortIDLabels = opts.shortIDLabels = {};
+  opts.loadjsPaths = [];
 
   var rOpts = {
     basedir: opts.mapDir,
@@ -33,13 +34,21 @@ function partitionBundle(b, opts) {
       if (typeof mod === 'string') {
         mod = {
           require: mod,
-          expose: mod
+          expose: mod,
+          loadjsPath: file
+        };
+      } else {
+        mod = {
+          require: mod.require,
+          expose: mod.expose || mod.require,
+          loadjsPath: mod.loadjsPath || file
         };
       }
 
       var id = bresolve.sync(mod.require, rOpts);
       shortIDLabels[id] = mod.expose;
       modules[i] = id;
+      opts.loadjsPaths.push(mod.loadjsPath);
       b.require(id, {entry: true});
     });
   });
@@ -80,6 +89,7 @@ function installBundlePipeline(pipeline, opts) {
         prelude: file == firstFile,
         firstFile: firstFile,
         files: Object.keys(opts.map),
+        loadjsPaths: opts.loadjsPaths,
         map: modulesByID,
         labels: shortIDLabels,
         url: opts.url,
@@ -315,7 +325,7 @@ function wrap(opts) {
         stream.push(new Buffer('\nloadjs.url = "' + opts.url + '";'));
       }
 
-      stream.push(new Buffer('\nloadjs.files = [' + opts.files.map(function(file) {
+      stream.push(new Buffer('\nloadjs.files = [' + opts.loadjsPaths.map(function(file) {
         return '"' + file + '"';
       }).join(',') + ']'));
 
